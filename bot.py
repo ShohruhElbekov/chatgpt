@@ -113,15 +113,7 @@ def handle_message(client, message):
         timestamps.append(now)
         user_messages[user_id] = timestamps
 
-        # Log (ism va familyasiz)
-        username = message.from_user.username or "NoUsername"
-        with open("log.txt", "a", encoding="utf-8") as f:
-            f.write(f"{user_id} | @{username} | {text}\n")
-
-    except Exception as e:
-        print(f"Xato: {e}")
-        message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
-
+       
 @app.on_callback_query(filters.regex("continue"))
 def continue_handler(client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
