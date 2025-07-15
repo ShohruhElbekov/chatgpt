@@ -47,11 +47,8 @@ def save_user(user):
     user_id = user.id
     if user_id not in all_users:
         username = f"@{user.username}" if user.username else "NoUsername"
-        first_name = user.first_name or ""
-        last_name = user.last_name or ""
-        full_name = f"{first_name} {last_name}".strip()
         with open("user_ids.txt", "a", encoding="utf-8") as f:
-            f.write(f"{user_id} | {username} | {full_name}\n")
+            f.write(f"{user_id} | {username}\n")
         all_users.add(user_id)
 
 all_users = load_users()
@@ -116,13 +113,10 @@ def handle_message(client, message):
         timestamps.append(now)
         user_messages[user_id] = timestamps
 
-        # Log
-        first_name = user.first_name or ""
-        last_name = user.last_name or ""
-        full_name = f"{first_name} {last_name}".strip()
-        username = f"@{user.username}" if user.username else "NoUsername"
+        # Log (ism va familyasiz)
+        username = message.from_user.username or "NoUsername"
         with open("log.txt", "a", encoding="utf-8") as f:
-            f.write(f"{user_id} | {username} | {full_name} | {text}\n")
+            f.write(f"{user_id} | @{username} | {text}\n")
 
     except Exception as e:
         print(f"Xato: {e}")
