@@ -9,7 +9,6 @@ API_HASH = "08c63cda730a00374392062e09c426d1"
 BOT_TOKEN = "8161140522:AAHHIJaLYmlPCsTJrInDxDRfKWTfzXaMDXI"
 TOGETHER_API_KEY = "10888df0044c2a80602f2b4238e376fdd95fc62a6ab824b265a074ff5b1b1fe9"
 TOGETHER_MODEL = "deepseek-ai/DeepSeek-V3"
-
 ADMIN_IDS = [7181480233]
 CHANNELS = ["@texno_yangiliklr_UZ", "@kompyuterishlaridastirlar"]
 
@@ -24,23 +23,27 @@ TIME_WINDOW = 2 * 60 * 60  # 2 soat
 def load_users():
     if not os.path.exists("user_ids.txt"):
         return set()
-    with open("user_ids.txt", "r") as f:
-        return set(map(int, f.read().splitlines()))
+    with open("user_ids.txt", "r", encoding="utf-8") as f:
+        return set(int(line.split(" | ")[0]) for line in f if line.strip())
 
-# 📝 Foydalanuvchini qo‘shish
-def save_user(user_id):
-    if user_id not in all_users:
-        with open("user_ids.txt", "a") as f:
-            f.write(str(user_id) + "\n")
-        all_users.add(user_id)
+# 📝 Foydalanuvchini saqlash
+def save_user(user):
+    user_id = user.id
+    if user_id in all_users:
+        return
+    username = f"@{user.username}" if user.username else "NoUsername"
+    fullname = (user.first_name or "") + (" " + user.last_name if user.last_name else "")
+    with open("user_ids.txt", "a", encoding="utf-8") as f:
+        f.write(f"{user_id} | {username} | {fullname.strip()}\n")
+    all_users.add(user_id)
 
 all_users = load_users()
 
 @app.on_message(filters.command("start") & filters.private)
 def start(client, message):
-    user_id = message.from_user.id
-    save_user(user_id)
-    user_language[user_id] = None
+    user = message.from_user
+    save_user(user)
+    user_language[user.id] = None
     keyboard = ReplyKeyboardMarkup(
         [["🇺🇿 O‘zbekcha", "🇷🇺 Русский", "🇬🇧 English"]],
         resize_keyboard=True, one_time_keyboard=True
@@ -49,9 +52,10 @@ def start(client, message):
 
 @app.on_message(filters.text & filters.private)
 def handle_message(client, message):
-    user_id = message.from_user.id
+    user = message.from_user
+    user_id = user.id
     text = message.text
-    save_user(user_id)
+    save_user(user)
 
     if user_language.get(user_id) is None:
         if text == "🇺🇿 O‘zbekcha":
@@ -71,7 +75,6 @@ def handle_message(client, message):
         message.reply_text("📢 Quyidagi kanallarga obuna bo‘ling va davom eting:", reply_markup=InlineKeyboardMarkup(buttons))
         return
 
-    # ⏳ Limit tekshiruvi
     now = time.time()
     timestamps = user_messages.get(user_id, [])
     timestamps = [t for t in timestamps if now - t < TIME_WINDOW]
@@ -86,22 +89,22 @@ def handle_message(client, message):
         message.reply_text(messages.get(lang, "⏳ Limit reached. Try later."))
         return
 
-    # 🤖 DeepSeek orqali javob olish
-    try:
-        reply = ask_deepseek(text)
-        message.reply_text(reply)
+    # ⌛ Typing animatsiyasi
+    with app.typing(message.chat.id):
+        try:
+            reply = ask_deepseek(text)
+            message.reply_text(reply)
 
-        timestamps.append(now)
-        user_messages[user_id] = timestamps
+            timestamps.append(now)
+            user_messages[user_id] = timestamps
 
-        # 🧾 Logga yozish
-        log_entry = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {user_id}: {text}\n"
-        with open("log.txt", "a", encoding="utf-8") as f:
-            f.write(log_entry)
+            log_entry = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {user_id}: {text}\n"
+            with open("log.txt", "a", encoding="utf-8") as f:
+                f.write(log_entry)
 
-    except Exception as e:
-        print(f"Xato: {e}")
-        message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
+        except Exception as e:
+            print(f"Xato: {e}")
+            message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
 
 @app.on_callback_query(filters.regex("continue"))
 def continue_handler(client, callback_query: CallbackQuery):
@@ -116,6 +119,14 @@ def continue_handler(client, callback_query: CallbackQuery):
     callback_query.answer()
 
 def ask_deepseek(prompt):
+    # Matn uzunligiga qarab max_tokens aniqlanadi
+    if len(prompt) < 50:
+        max_tokens = 100
+    elif len(prompt) < 200:
+        max_tokens = 300
+    else:
+        max_tokens = 600
+
     url = "https://api.together.xyz/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {TOGETHER_API_KEY}",
@@ -124,20 +135,19 @@ def ask_deepseek(prompt):
     data = {
         "model": TOGETHER_MODEL,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7
+        "temperature": 0.7,
+        "max_tokens": max_tokens
     }
     res = requests.post(url, headers=headers, json=data)
     res.raise_for_status()
     return res.json()["choices"][0]["message"]["content"]
 
-# 📊 Statistika
 @app.on_message(filters.command("stat") & filters.private)
 def show_stats(client, message):
     if message.from_user.id not in ADMIN_IDS:
         return
     message.reply_text(f"📊 Umumiy foydalanuvchilar: {len(all_users)}")
 
-# 📝 Log komandasi
 @app.on_message(filters.command("logs") & filters.private)
 def show_logs(client, message):
     if message.from_user.id not in ADMIN_IDS:
