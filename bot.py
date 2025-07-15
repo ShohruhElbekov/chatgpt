@@ -6,9 +6,10 @@ import os
 
 API_ID = 23346001
 API_HASH = "08c63cda730a00374392062e09c426d1"
-BOT_TOKEN = "8161140522:AAHHIJaLYmlPCsTJrInDxDRfKWTfzXaMDXI"
-TOGETHER_API_KEY = "10888df0044c2a80602f2b4238e376fdd95fc62a6ab824b265a074ff5b1b1fe9"
+BOT_TOKEN = "YOUR_NEW_TOKEN"
+TOGETHER_API_KEY = "your_together_api_key"
 TOGETHER_MODEL = "deepseek-ai/DeepSeek-V3"
+
 ADMIN_IDS = [7181480233]
 CHANNELS = ["@texno_yangiliklr_UZ", "@kompyuterishlaridastirlar"]
 
@@ -17,25 +18,25 @@ app = Client("deepseek_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOK
 user_language = {}
 user_messages = {}
 MESSAGE_LIMIT = 10
-TIME_WINDOW = 2 * 60 * 60  # 2 soat
+TIME_WINDOW = 2 * 60 * 60
 
-# 📂 Foydalanuvchilarni yuklash
+# Load all users from file
 def load_users():
     if not os.path.exists("user_ids.txt"):
         return set()
     with open("user_ids.txt", "r", encoding="utf-8") as f:
-        return set(int(line.split(" | ")[0]) for line in f if line.strip())
+        return set(line.strip().split(" | ")[0] for line in f)
 
-# 📝 Foydalanuvchini saqlash
+# Save user to file
 def save_user(user):
-    user_id = user.id
-    if user_id in all_users:
-        return
+    uid = str(user.id)
     username = f"@{user.username}" if user.username else "NoUsername"
-    fullname = (user.first_name or "") + (" " + user.last_name if user.last_name else "")
-    with open("user_ids.txt", "a", encoding="utf-8") as f:
-        f.write(f"{user_id} | {username} | {fullname.strip()}\n")
-    all_users.add(user_id)
+    full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+    entry = f"{uid} | {username} | {full_name}"
+    if uid not in all_users:
+        with open("user_ids.txt", "a", encoding="utf-8") as f:
+            f.write(entry + "\n")
+        all_users.add(uid)
 
 all_users = load_users()
 
@@ -43,6 +44,11 @@ all_users = load_users()
 def start(client, message):
     user = message.from_user
     save_user(user)
+
+    if user_language.get(user.id) is not None:
+        message.reply_text("🔁 Siz allaqachon tilni tanlagansiz. Savolingizni yuboring.")
+        return
+
     user_language[user.id] = None
     keyboard = ReplyKeyboardMarkup(
         [["🇺🇿 O‘zbekcha", "🇷🇺 Русский", "🇬🇧 English"]],
@@ -53,34 +59,30 @@ def start(client, message):
 @app.on_message(filters.text & filters.private)
 def handle_message(client, message):
     user = message.from_user
-    user_id = user.id
     text = message.text
     save_user(user)
 
-    if user_language.get(user_id) is None:
-        if text == "🇺🇿 O‘zbekcha":
-            user_language[user_id] = "uz"
-        elif text == "🇷🇺 Русский":
-            user_language[user_id] = "ru"
-        elif text == "🇬🇧 English":
-            user_language[user_id] = "en"
+    if user_language.get(user.id) is None:
+        lang_codes = {
+            "🇺🇿 O‘zbekcha": "uz",
+            "🇷🇺 Русский": "ru",
+            "🇬🇧 English": "en"
+        }
+        if text in lang_codes:
+            user_language[user.id] = lang_codes[text]
+            buttons = [[InlineKeyboardButton(ch[1:], url=f"https://t.me/{ch[1:]}")] for ch in CHANNELS]
+            buttons.append([InlineKeyboardButton("✅ Davom etish", callback_data="continue")])
+            message.reply_text("📢 Quyidagi kanallarga obuna bo‘ling va davom eting:", reply_markup=InlineKeyboardMarkup(buttons))
         else:
-            message.reply_text("❗️ Iltimos, tilni tanlang.")
-            return
-
-        buttons = [
-            [InlineKeyboardButton(ch[1:], url=f"https://t.me/{ch[1:]}")] for ch in CHANNELS
-        ]
-        buttons.append([InlineKeyboardButton("✅ Davom etish", callback_data="continue")])
-        message.reply_text("📢 Quyidagi kanallarga obuna bo‘ling va davom eting:", reply_markup=InlineKeyboardMarkup(buttons))
+            message.reply_text("❗️ Iltimos, tilni to‘g‘ri tanlang.")
         return
 
     now = time.time()
-    timestamps = user_messages.get(user_id, [])
+    timestamps = user_messages.get(user.id, [])
     timestamps = [t for t in timestamps if now - t < TIME_WINDOW]
 
     if len(timestamps) >= MESSAGE_LIMIT:
-        lang = user_language[user_id]
+        lang = user_language[user.id]
         messages = {
             "uz": "⏳ 2 soatda 10 ta savol berishingiz mumkin. Keyinroq urinib ko‘ring.",
             "ru": "⏳ Вы задали 10 вопросов за 2 часа. Пожалуйста, попробуйте позже.",
@@ -89,22 +91,18 @@ def handle_message(client, message):
         message.reply_text(messages.get(lang, "⏳ Limit reached. Try later."))
         return
 
-    # ⌛ Typing animatsiyasi
-    with app.typing(message.chat.id):
-        try:
+    try:
+        with app.send_chat_action(message.chat.id, "typing"):
             reply = ask_deepseek(text)
-            message.reply_text(reply)
-
-            timestamps.append(now)
-            user_messages[user_id] = timestamps
-
-            log_entry = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {user_id}: {text}\n"
-            with open("log.txt", "a", encoding="utf-8") as f:
-                f.write(log_entry)
-
-        except Exception as e:
-            print(f"Xato: {e}")
-            message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
+        message.reply_text(reply)
+        timestamps.append(now)
+        user_messages[user.id] = timestamps
+        log_entry = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {user.id}: {text}\n"
+        with open("log.txt", "a", encoding="utf-8") as f:
+            f.write(log_entry)
+    except Exception as e:
+        print(f"Xato: {e}")
+        message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
 
 @app.on_callback_query(filters.regex("continue"))
 def continue_handler(client, callback_query: CallbackQuery):
@@ -119,14 +117,6 @@ def continue_handler(client, callback_query: CallbackQuery):
     callback_query.answer()
 
 def ask_deepseek(prompt):
-    # Matn uzunligiga qarab max_tokens aniqlanadi
-    if len(prompt) < 50:
-        max_tokens = 100
-    elif len(prompt) < 200:
-        max_tokens = 300
-    else:
-        max_tokens = 600
-
     url = "https://api.together.xyz/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {TOGETHER_API_KEY}",
@@ -135,8 +125,7 @@ def ask_deepseek(prompt):
     data = {
         "model": TOGETHER_MODEL,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7,
-        "max_tokens": max_tokens
+        "temperature": 0.7
     }
     res = requests.post(url, headers=headers, json=data)
     res.raise_for_status()
