@@ -68,7 +68,7 @@ def start(client, message):
         [["🇺🇿 O‘zbekcha", "🇷🇺 Русский", "🇬🇧 English"]],
         resize_keyboard=True, one_time_keyboard=True
     )
-    message.reply_text("🌐 Iltimos, tilni tanlang:\n\nPlease choose your language:", reply_markup=keyboard)
+    message.reply_text("🌐 Iltimos, tilni tanlang:", reply_markup=keyboard)
 
 @app.on_message(filters.text & filters.private)
 def handle_message(client, message):
@@ -87,9 +87,9 @@ def handle_message(client, message):
                 [InlineKeyboardButton(ch[1:], url=f"https://t.me/{ch[1:]}")] for ch in CHANNELS
             ]
             buttons.append([InlineKeyboardButton("✅ Davom etish", callback_data="continue")])
-            message.reply_text("📢 Quyidagi kanallarga obuna bo‘ling va davom eting:", reply_markup=InlineKeyboardMarkup(buttons))
+            message.reply_text("📢 Quyidagi kanallarga obuna bo‘ling:", reply_markup=InlineKeyboardMarkup(buttons))
         else:
-            message.reply_text("❗️ Iltimos, tilni tanlang.")
+            message.reply_text("❗️ Iltimos, tilni to‘g‘ri tanlang.")
         return
 
     # Limit tekshiruvi
@@ -99,9 +99,9 @@ def handle_message(client, message):
     if len(timestamps) >= MESSAGE_LIMIT:
         lang = user_language.get(user_id, "uz")
         messages = {
-            "uz": "⏳ 2 soatda 10 ta savol berishingiz mumkin. Keyinroq urinib ko‘ring.",
-            "ru": "⏳ Вы задали 10 вопросов за 2 часа. Пожалуйста, попробуйте позже.",
-            "en": "⏳ You've asked 10 questions in 2 hours. Please try again later."
+            "uz": "⏳ 2 soatda 10 ta savol berishingiz mumkin.",
+            "ru": "⏳ Вы задали 10 вопросов за 2 часа.",
+            "en": "⏳ You've asked 10 questions in 2 hours."
         }
         message.reply_text(messages.get(lang))
         return
@@ -113,14 +113,22 @@ def handle_message(client, message):
         timestamps.append(now)
         user_messages[user_id] = timestamps
 
-       
+        # Log
+        with open("log.txt", "a", encoding="utf-8") as f:
+            username = message.from_user.username or "NoUsername"
+            f.write(f"{user_id} | @{username} | {text}\n")
+
+    except Exception as e:
+        print(f"Xato: {e}")
+        message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
+
 @app.on_callback_query(filters.regex("continue"))
 def continue_handler(client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     lang = user_language.get(user_id, "uz")
     texts = {
         "uz": "✅ Botga xush kelibsiz! Endi savolingizni yozishingiz mumkin.",
-        "ru": "✅ Добро пожаловать! Можете отправить свой вопрос.",
+        "ru": "✅ Добро пожаловать! Можете задать свой вопрос.",
         "en": "✅ Welcome! You can now ask your question."
     }
     callback_query.message.reply_text(texts.get(lang, "✅ You can now chat."))
