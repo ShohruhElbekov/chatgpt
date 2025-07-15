@@ -40,7 +40,7 @@ def load_users():
             for line in f:
                 parts = line.strip().split("|")
                 if parts:
-                    users.add(int(parts[0].strip()))
+                    users.add(int(parts[0]))
     return users
 
 def save_user(user):
@@ -116,11 +116,11 @@ def handle_message(client, message):
         timestamps.append(now)
         user_messages[user_id] = timestamps
 
-        # Logga yozish
-        username = f"@{user.username}" if user.username else "NoUsername"
+        # Log
         first_name = user.first_name or ""
         last_name = user.last_name or ""
         full_name = f"{first_name} {last_name}".strip()
+        username = f"@{user.username}" if user.username else "NoUsername"
         with open("log.txt", "a", encoding="utf-8") as f:
             f.write(f"{user_id} | {username} | {full_name} | {text}\n")
 
