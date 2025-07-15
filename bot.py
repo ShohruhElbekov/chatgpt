@@ -115,8 +115,14 @@ def handle_message(client, message):
         user_messages[user_id] = timestamps
 
         # Log
-        with open("log.txt", "a", encoding="utf-8") as f:
-            f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {user_id}: {text}\n")
+       first_name = message.from_user.first_name or ""
+last_name = message.from_user.last_name or ""
+full_name = f"{first_name} {last_name}".strip()
+username = message.from_user.username or "NoUsername"
+
+with open("user_ids.txt", "a") as f:
+    f.write(f"{user_id} | @{username} | {full_name}\n")
+
     except Exception as e:
         print(f"Xato: {e}")
         message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
