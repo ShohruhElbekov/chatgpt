@@ -3,43 +3,44 @@ from pyrogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyb
 import time
 import requests
 import os
-import json
 
 API_ID = 23346001
 API_HASH = "08c63cda730a00374392062e09c426d1"
 BOT_TOKEN = "8161140522:AAHHIJaLYmlPCsTJrInDxDRfKWTfzXaMDXI"
 TOGETHER_API_KEY = "10888df0044c2a80602f2b4238e376fdd95fc62a6ab824b265a074ff5b1b1fe9"
 TOGETHER_MODEL = "deepseek-ai/DeepSeek-V3"
+
 ADMIN_IDS = [7181480233]
 CHANNELS = ["@texno_yangiliklr_UZ", "@kompyuterishlaridastirlar"]
-DATA_FILE = "user_data.json"
-
-MESSAGE_LIMIT = 10
-TIME_WINDOW = 2 * 60 * 60  # 2 soat
 
 app = Client("deepseek_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# 📦 Ma'lumotlarni saqlash/yuklash
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+user_language = {}
+user_messages = {}
+MESSAGE_LIMIT = 10
+TIME_WINDOW = 2 * 60 * 60  # 2 soat
 
-def save_data(data):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f)
+# 📂 Foydalanuvchilarni yuklash
+def load_users():
+    if not os.path.exists("user_ids.txt"):
+        return set()
+    with open("user_ids.txt", "r") as f:
+        return set(map(int, f.read().splitlines()))
 
-data = load_data()
+# 📝 Foydalanuvchini qo‘shish
+def save_user(user_id):
+    if user_id not in all_users:
+        with open("user_ids.txt", "a") as f:
+            f.write(str(user_id) + "\n")
+        all_users.add(user_id)
+
+all_users = load_users()
 
 @app.on_message(filters.command("start") & filters.private)
 def start(client, message):
-    user_id = str(message.from_user.id)
-
-    if user_id not in data:
-        data[user_id] = {"lang": None, "timestamps": []}
-        save_data(data)
-
+    user_id = message.from_user.id
+    save_user(user_id)
+    user_language[user_id] = None
     keyboard = ReplyKeyboardMarkup(
         [["🇺🇿 O‘zbekcha", "🇷🇺 Русский", "🇬🇧 English"]],
         resize_keyboard=True, one_time_keyboard=True
@@ -48,26 +49,20 @@ def start(client, message):
 
 @app.on_message(filters.text & filters.private)
 def handle_message(client, message):
-    user_id = str(message.from_user.id)
+    user_id = message.from_user.id
     text = message.text
+    save_user(user_id)
 
-    if user_id not in data:
-        data[user_id] = {"lang": None, "timestamps": []}
-        save_data(data)
-
-    # 👅 Til tanlanmagan bo‘lsa
-    if data[user_id]["lang"] is None:
+    if user_language.get(user_id) is None:
         if text == "🇺🇿 O‘zbekcha":
-            data[user_id]["lang"] = "uz"
+            user_language[user_id] = "uz"
         elif text == "🇷🇺 Русский":
-            data[user_id]["lang"] = "ru"
+            user_language[user_id] = "ru"
         elif text == "🇬🇧 English":
-            data[user_id]["lang"] = "en"
+            user_language[user_id] = "en"
         else:
             message.reply_text("❗️ Iltimos, tilni tanlang.")
             return
-
-        save_data(data)
 
         buttons = [
             [InlineKeyboardButton(ch[1:], url=f"https://t.me/{ch[1:]}")] for ch in CHANNELS
@@ -76,12 +71,13 @@ def handle_message(client, message):
         message.reply_text("📢 Quyidagi kanallarga obuna bo‘ling va davom eting:", reply_markup=InlineKeyboardMarkup(buttons))
         return
 
-    # 🧠 Limit tekshiruvi
+    # ⏳ Limit tekshiruvi
     now = time.time()
-    timestamps = [t for t in data[user_id]["timestamps"] if now - t < TIME_WINDOW]
+    timestamps = user_messages.get(user_id, [])
+    timestamps = [t for t in timestamps if now - t < TIME_WINDOW]
 
     if len(timestamps) >= MESSAGE_LIMIT:
-        lang = data[user_id]["lang"]
+        lang = user_language[user_id]
         messages = {
             "uz": "⏳ 2 soatda 10 ta savol berishingiz mumkin. Keyinroq urinib ko‘ring.",
             "ru": "⏳ Вы задали 10 вопросов за 2 часа. Пожалуйста, попробуйте позже.",
@@ -90,14 +86,15 @@ def handle_message(client, message):
         message.reply_text(messages.get(lang, "⏳ Limit reached. Try later."))
         return
 
+    # 🤖 DeepSeek orqali javob olish
     try:
         reply = ask_deepseek(text)
         message.reply_text(reply)
 
         timestamps.append(now)
-        data[user_id]["timestamps"] = timestamps
-        save_data(data)
+        user_messages[user_id] = timestamps
 
+        # 🧾 Logga yozish
         log_entry = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {user_id}: {text}\n"
         with open("log.txt", "a", encoding="utf-8") as f:
             f.write(log_entry)
@@ -108,8 +105,8 @@ def handle_message(client, message):
 
 @app.on_callback_query(filters.regex("continue"))
 def continue_handler(client, callback_query: CallbackQuery):
-    user_id = str(callback_query.from_user.id)
-    lang = data.get(user_id, {}).get("lang", "uz")
+    user_id = callback_query.from_user.id
+    lang = user_language.get(user_id, "uz")
     texts = {
         "uz": "✅ Botga xush kelibsiz! Endi savolingizni yozishingiz mumkin.",
         "ru": "✅ Добро пожаловать! Можете отправить свой вопрос.",
@@ -133,13 +130,14 @@ def ask_deepseek(prompt):
     res.raise_for_status()
     return res.json()["choices"][0]["message"]["content"]
 
-# Admin statistikasi
+# 📊 Statistika
 @app.on_message(filters.command("stat") & filters.private)
 def show_stats(client, message):
     if message.from_user.id not in ADMIN_IDS:
         return
-    message.reply_text(f"📊 Umumiy foydalanuvchilar: {len(data)}")
+    message.reply_text(f"📊 Umumiy foydalanuvchilar: {len(all_users)}")
 
+# 📝 Log komandasi
 @app.on_message(filters.command("logs") & filters.private)
 def show_logs(client, message):
     if message.from_user.id not in ADMIN_IDS:
