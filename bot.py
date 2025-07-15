@@ -40,16 +40,18 @@ def load_users():
             for line in f:
                 parts = line.strip().split("|")
                 if parts:
-                    users.add(int(parts[0]))
+                    users.add(int(parts[0].strip()))
     return users
 
 def save_user(user):
     user_id = user.id
     if user_id not in all_users:
         username = f"@{user.username}" if user.username else "NoUsername"
-        fullname = f"{user.first_name} {user.last_name}" if user.last_name else user.first_name
+        first_name = user.first_name or ""
+        last_name = user.last_name or ""
+        full_name = f"{first_name} {last_name}".strip()
         with open("user_ids.txt", "a", encoding="utf-8") as f:
-            f.write(f"{user_id} | {username} | {fullname}\n")
+            f.write(f"{user_id} | {username} | {full_name}\n")
         all_users.add(user_id)
 
 all_users = load_users()
@@ -108,20 +110,19 @@ def handle_message(client, message):
         return
 
     try:
-        message.reply_chat_action("typing")  # ⌨️ "Typing..." ko‘rsatish
+        message.reply_chat_action("typing")
         reply = ask_deepseek(text)
         message.reply_text(reply)
         timestamps.append(now)
         user_messages[user_id] = timestamps
 
-        # Log
-       first_name = message.from_user.first_name or ""
-last_name = message.from_user.last_name or ""
-full_name = f"{first_name} {last_name}".strip()
-username = message.from_user.username or "NoUsername"
-
-with open("user_ids.txt", "a") as f:
-    f.write(f"{user_id} | @{username} | {full_name}\n")
+        # Logga yozish
+        username = f"@{user.username}" if user.username else "NoUsername"
+        first_name = user.first_name or ""
+        last_name = user.last_name or ""
+        full_name = f"{first_name} {last_name}".strip()
+        with open("log.txt", "a", encoding="utf-8") as f:
+            f.write(f"{user_id} | {username} | {full_name} | {text}\n")
 
     except Exception as e:
         print(f"Xato: {e}")
