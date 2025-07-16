@@ -124,10 +124,6 @@ def ask_deepseek(prompt):
         "Content-Type": "application/json"
     }
 
-    res = requests.post(url, headers=headers, json=data)
-    res.raise_for_status()
-    return res.json()["choices"][0]["message"]["content"]
-
 @app.on_message(filters.command("stat") & filters.private)
 def show_stats(client, message):
     if message.from_user.id not in ADMIN_IDS:
