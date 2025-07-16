@@ -1,4 +1,3 @@
-Shohrux, [7/17/2025 3:47 AM]
 from pyrogram import Client, filters
 from pyrogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 import time
@@ -106,7 +105,6 @@ def handle_message(client, message):
         print(f"Xato: {e}")
         message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
 
-Shohrux, [7/17/2025 3:47 AM]
 @app.on_callback_query(filters.regex("continue"))
 def continue_handler(client, callback_query: CallbackQuery):
     user_id = str(callback_query.from_user.id)
