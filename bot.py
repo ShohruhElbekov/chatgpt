@@ -1,4 +1,3 @@
-
 from pyrogram import Client, filters
 from pyrogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 import time
@@ -102,7 +101,6 @@ def handle_message(client, message):
         log_entry = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {user_id}: {text}\n"
         with open("log.txt", "a", encoding="utf-8") as f:
             f.write(log_entry)
-
 
 except Exception as e:
         print(f"Xato: {e}")
