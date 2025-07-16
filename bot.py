@@ -1,3 +1,4 @@
+Shohrux, [7/17/2025 3:43 AM]
 from pyrogram import Client, filters
 from pyrogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 import time
@@ -19,6 +20,7 @@ TIME_WINDOW = 2 * 60 * 60  # 2 soat
 
 app = Client("deepseek_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
+# 📦 Ma'lumotlarni saqlash/yuklash
 def load_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -54,6 +56,7 @@ def handle_message(client, message):
         data[user_id] = {"lang": None, "timestamps": []}
         save_data(data)
 
+    # 👅 Til tanlanmagan bo‘lsa
     if data[user_id]["lang"] is None:
         if text == "🇺🇿 O‘zbekcha":
             data[user_id]["lang"] = "uz"
@@ -74,6 +77,7 @@ def handle_message(client, message):
         message.reply_text("📢 Quyidagi kanallarga obuna bo‘ling va davom eting:", reply_markup=InlineKeyboardMarkup(buttons))
         return
 
+    # 🧠 Limit tekshiruvi
     now = time.time()
     timestamps = [t for t in data[user_id]["timestamps"] if now - t < TIME_WINDOW]
 
@@ -88,11 +92,8 @@ def handle_message(client, message):
         return
 
     try:
-        client.send_chat_action(message.chat.id, "typing")
-        wait_msg = message.reply_text("🔄 Ma’lumotlar to‘planmoqda...")
-
         reply = ask_deepseek(text)
-        wait_msg.edit_text(reply)
+        message.reply_text(reply)
 
         timestamps.append(now)
         data[user_id]["timestamps"] = timestamps
@@ -102,10 +103,11 @@ def handle_message(client, message):
         with open("log.txt", "a", encoding="utf-8") as f:
             f.write(log_entry)
 
-    except Exception as e:
+Shohrux, [7/17/2025 3:43 AM]
+except Exception as e:
         print(f"Xato: {e}")
         message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
-
+        
 @app.on_callback_query(filters.regex("continue"))
 def continue_handler(client, callback_query: CallbackQuery):
     user_id = str(callback_query.from_user.id)
@@ -127,13 +129,13 @@ def ask_deepseek(prompt):
     data = {
         "model": TOGETHER_MODEL,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7,
-        "max_tokens": 100  # Har doim qisqa javob
+        "temperature": 0.7
     }
     res = requests.post(url, headers=headers, json=data)
     res.raise_for_status()
     return res.json()["choices"][0]["message"]["content"]
 
+# Admin statistikasi
 @app.on_message(filters.command("stat") & filters.private)
 def show_stats(client, message):
     if message.from_user.id not in ADMIN_IDS:
@@ -153,3 +155,5 @@ def show_logs(client, message):
 
 print("✅ DeepSeek bot ishga tushdi!")
 app.run()
+    
+  oddiy kod uzun javob yozadigan
