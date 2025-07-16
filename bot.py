@@ -113,7 +113,7 @@ def handle_message(client, message):
         timestamps.append(now)
         user_messages[user_id] = timestamps
 
-        # Log
+        # Log yozish
         with open("log.txt", "a", encoding="utf-8") as f:
             username = message.from_user.username or "NoUsername"
             f.write(f"{user_id} | @{username} | {text}\n")
@@ -135,19 +135,24 @@ def continue_handler(client, callback_query: CallbackQuery):
     callback_query.answer()
 
 def ask_deepseek(prompt):
-    url = "https://api.together.xyz/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {TOGETHER_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": TOGETHER_MODEL,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7
-    }
-    res = requests.post(url, headers=headers, json=data)
-    res.raise_for_status()
-    return res.json()["choices"][0]["message"]["content"]
+    try:
+        url = "https://api.together.xyz/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {TOGETHER_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": TOGETHER_MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.7
+        }
+        res = requests.post(url, headers=headers, json=data)
+        res.raise_for_status()
+        result = res.json()
+        return result["choices"][0]["message"]["content"]
+    except Exception as e:
+        print("DeepSeek API xatosi:", e)
+        return "❌ Javobni olishda xatolik."
 
 @app.on_message(filters.command("stat") & filters.private)
 def show_stats(client, message):
