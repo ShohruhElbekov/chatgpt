@@ -106,8 +106,7 @@ def handle_message(client, message):
     except Exception as e:
         print(f"Xato: {e}")
         message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
-
-Shohrux, [7/16/2025 1:51 AM]
+        
 @app.on_callback_query(filters.regex("continue"))
 def continue_handler(client, callback_query: CallbackQuery):
     user_id = str(callback_query.from_user.id)
