@@ -123,6 +123,15 @@ def ask_deepseek(prompt):
         "Authorization": f"Bearer {TOGETHER_API_KEY}",
         "Content-Type": "application/json"
     }
+    data = {
+        "model": TOGETHER_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.7,
+        "max_tokens": 100  # Javob uzunligi doimiy
+    }
+    res = requests.post(url, headers=headers, json=data)
+    res.raise_for_status()
+    return res.json()["choices"][0]["message"]["content"]
 
 @app.on_message(filters.command("stat") & filters.private)
 def show_stats(client, message):
@@ -143,4 +152,3 @@ def show_logs(client, message):
 
 print("✅ DeepSeek bot ishga tushdi!")
 app.run()
-    
