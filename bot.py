@@ -33,32 +33,11 @@ def save_language(user_id, lang):
     with open("user_languages.txt", "a") as f:
         f.write(f"{user_id}:{lang}\n")
 
-def load_users():
-    users = set()
-    if os.path.exists("user_ids.txt"):
-        with open("user_ids.txt", "r") as f:
-            for line in f:
-                parts = line.strip().split("|")
-                if parts:
-                    users.add(int(parts[0]))
-    return users
-
-def save_user(user):
-    user_id = user.id
-    if user_id not in all_users:
-        username = f"@{user.username}" if user.username else "NoUsername"
-        with open("user_ids.txt", "a", encoding="utf-8") as f:
-            f.write(f"{user_id} | {username}\n")
-        all_users.add(user_id)
-
-all_users = load_users()
 load_languages()
 
 @app.on_message(filters.command("start") & filters.private)
 def start(client, message):
-    user = message.from_user
-    user_id = user.id
-    save_user(user)
+    user_id = message.from_user.id
 
     if user_id in user_language:
         message.reply_text("✅ Botga xush kelibsiz! Savolingizni yozing.")
@@ -72,11 +51,8 @@ def start(client, message):
 
 @app.on_message(filters.text & filters.private)
 def handle_message(client, message):
-    user = message.from_user
-    user_id = user.id
+    user_id = message.from_user.id
     text = message.text
-
-    save_user(user)
 
     if user_id not in user_language:
         langs = {"🇺🇿 O‘zbekcha": "uz", "🇷🇺 Русский": "ru", "🇬🇧 English": "en"}
@@ -92,7 +68,6 @@ def handle_message(client, message):
             message.reply_text("❗️ Iltimos, tilni to‘g‘ri tanlang.")
         return
 
-    # Limit tekshiruvi
     now = time.time()
     timestamps = user_messages.get(user_id, [])
     timestamps = [t for t in timestamps if now - t < TIME_WINDOW]
@@ -112,12 +87,6 @@ def handle_message(client, message):
         message.reply_text(reply)
         timestamps.append(now)
         user_messages[user_id] = timestamps
-
-        # Log yozish
-        with open("log.txt", "a", encoding="utf-8") as f:
-            username = message.from_user.username or "NoUsername"
-            f.write(f"{user_id} | @{username} | {text}\n")
-
     except Exception as e:
         print(f"Xato: {e}")
         message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
@@ -135,41 +104,26 @@ def continue_handler(client, callback_query: CallbackQuery):
     callback_query.answer()
 
 def ask_deepseek(prompt):
-    try:
-        url = "https://api.together.xyz/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {TOGETHER_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": TOGETHER_MODEL,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.7
-        }
-        res = requests.post(url, headers=headers, json=data)
-        res.raise_for_status()
-        result = res.json()
-        return result["choices"][0]["message"]["content"]
-    except Exception as e:
-        print("DeepSeek API xatosi:", e)
-        return "❌ Javobni olishda xatolik."
+    url = "https://api.together.xyz/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {TOGETHER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": TOGETHER_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.7
+    }
+    res = requests.post(url, headers=headers, json=data)
+    res.raise_for_status()
+    return res.json()["choices"][0]["message"]["content"]
 
 @app.on_message(filters.command("stat") & filters.private)
 def show_stats(client, message):
     if message.from_user.id not in ADMIN_IDS:
         return
-    message.reply_text(f"📊 Umumiy foydalanuvchilar: {len(all_users)}")
-
-@app.on_message(filters.command("logs") & filters.private)
-def show_logs(client, message):
-    if message.from_user.id not in ADMIN_IDS:
-        return
-    if not os.path.exists("log.txt"):
-        message.reply_text("📂 Log fayli topilmadi.")
-        return
-    with open("log.txt", "r", encoding="utf-8") as f:
-        logs = f.readlines()[-30:]
-    message.reply_text("📝 Oxirgi savollar:\n\n" + "".join(logs))
+    total_users = len(user_language)
+    message.reply_text(f"📊 Umumiy foydalanuvchilar: {total_users}")
 
 print("✅ DeepSeek bot ishga tushdi!")
 app.run()
