@@ -152,4 +152,4 @@ def show_logs(client, message):
 
 print("✅ DeepSeek bot ishga tushdi!")
 app.run()
-     malumotlar to'planmoqda
+    
