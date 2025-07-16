@@ -126,8 +126,8 @@ def ask_deepseek(prompt):
     data = {
         "model": TOGETHER_MODEL,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7,
-        "max_tokens": 100  # Javob uzunligi doimiy
+        "temperature": 0.3,
+        "max_tokens": 500  # Javob uzunligi doimiy
     }
     res = requests.post(url, headers=headers, json=data)
     res.raise_for_status()
