@@ -1,4 +1,4 @@
-Shohrux, [7/16/2025 1:51 AM]
+
 from pyrogram import Client, filters
 from pyrogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 import time
