@@ -1,4 +1,4 @@
-Shohrux, [7/17/2025 3:43 AM]
+
 from pyrogram import Client, filters
 from pyrogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 import time
@@ -103,7 +103,7 @@ def handle_message(client, message):
         with open("log.txt", "a", encoding="utf-8") as f:
             f.write(log_entry)
 
-Shohrux, [7/17/2025 3:43 AM]
+
 except Exception as e:
         print(f"Xato: {e}")
         message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
