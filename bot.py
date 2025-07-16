@@ -81,15 +81,7 @@ def handle_message(client, message):
         message.reply_text(messages.get(lang))
         return
 
-    try:
-        message.reply_chat_action("typing")
-        reply = ask_deepseek(text)
-        message.reply_text(reply)
-        timestamps.append(now)
-        user_messages[user_id] = timestamps
-    except Exception as e:
-        print(f"Xato: {e}")
-        message.reply_text("❌ Javobni olishda xatolik. Keyinroq urinib ko‘ring.")
+   
 
 @app.on_callback_query(filters.regex("continue"))
 def continue_handler(client, callback_query: CallbackQuery):
