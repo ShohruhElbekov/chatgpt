@@ -1,4 +1,3 @@
-
 from pyrogram import Client, filters
 from pyrogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 import time
@@ -89,8 +88,13 @@ def handle_message(client, message):
         return
 
     try:
+        # Typing holatini ko‘rsatish
+        client.send_chat_action(message.chat.id, "typing")
+
+        # Kutish xabari
         wait_msg = message.reply_text("🔄 Ma’lumotlar to‘planmoqda...")
 
+        # Javob olish
         reply = ask_deepseek(text)
         wait_msg.edit_text(reply)
 
@@ -119,6 +123,15 @@ def continue_handler(client, callback_query: CallbackQuery):
     callback_query.answer()
 
 def ask_deepseek(prompt):
+    # Savol uzunligiga qarab javob limiti
+    prompt_length = len(prompt)
+    if prompt_length <= 20:
+        max_tokens = 50
+    elif prompt_length <= 100:
+        max_tokens = 100
+    else:
+        max_tokens = 150  # Juda uzun bo‘lsa ham cheklangan
+
     url = "https://api.together.xyz/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {TOGETHER_API_KEY}",
@@ -128,7 +141,7 @@ def ask_deepseek(prompt):
         "model": TOGETHER_MODEL,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.7,
-        "max_tokens": 100  # Qisqaroq javoblar uchun
+        "max_tokens": max_tokens
     }
     res = requests.post(url, headers=headers, json=data)
     res.raise_for_status()
@@ -153,4 +166,3 @@ def show_logs(client, message):
 
 print("✅ DeepSeek bot ishga tushdi!")
 app.run()
-     
