@@ -8,10 +8,10 @@ from google.genai.errors import APIError
 # 1. KONFIGURATSIYA QISMI (Render muhitiga moslashgan)
 # ========================================================================
 
-# BOT_TOKEN va GEMINI_API_KEY Render muhitida Environment Variables orqali olinadi.
-# Lokal sinov uchun standart qiymatlar ishlatiladi.
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "8331826386:AAFo4TqHrxk3nkJ66BNF5wGLenGlM4Qvthc") 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDy4W2dLAs2LoErO6i28SefKmIe9U2Rz9I") 
+# BOT_TOKEN va GEMINI_API_KEY faqat Render muhitida Environment Variables orqali olinadi.
+# !!! STANDART QIYMATLAR OCHIRILDI !!!
+BOT_TOKEN = os.environ.get("BOT_TOKEN") 
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") 
 CHANNEL_ID = "-1002494664955"  # Topilgan Kanal ID
 
 # --- Gemini AI Modelini Sozlash ---
@@ -20,9 +20,14 @@ MODEL_NAME = 'gemini-2.5-flash'
 model_status = False 
 
 try:
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    print("Gemini APIga muvaffaqiyatli ulanildi.")
-    model_status = True
+    # Kalit mavjudligini tekshirish
+    if GEMINI_API_KEY:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        print("Gemini APIga muvaffaqiyatli ulanish uchun tayyorlandi.")
+        model_status = True
+    else:
+        print("!!! DIQQAT !!! GEMINI_API_KEY Environment Variables'da topilmadi.")
+        model_status = False
 except Exception as e:
     print(f"!!! DIQQAT !!! Gemini APIga ulanishda xato yuz berdi: {e}")
     model_status = False
@@ -164,7 +169,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
         # 2. Obunani tekshirish
         if await is_subscribed(user_id, context):
-            await query.message.reply_text(msg['sub_success']) # <--- Tilga mos muvaffaqiyat xabari
+            await query.message.reply_text(msg['sub_success']) 
         else:
             # Obuna bo'lmagan bo'lsa, kanalga yo'naltirish
             await subscription_check_message(query, context)
@@ -175,11 +180,11 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         msg = MESSAGES.get(lang_code, MESSAGES['uz'])
         
         if await is_subscribed(user_id, context):
-            await query.edit_message_text(msg['sub_success']) # <--- Tilga mos muvaffaqiyat xabari
+            await query.edit_message_text(msg['sub_success']) 
         else:
             # Xatolikni ko'rsatish
             error_message = f"{msg['sub_failed_title']} {msg['sub_failed_body']}"
-            await query.edit_message_text(error_message) # <--- Tilga mos xato xabari
+            await query.edit_message_text(error_message) 
             
             # Qayta obuna qilish tugmasini ko'rsatish
             await subscription_check_message(query, context)
@@ -214,6 +219,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text(response.text)
         
     except APIError:
+        # Bu joyda API kaliti muammosi bo'lganida shu xabar chiqadi
         await update.message.reply_text(msg['ai_error'])
     except Exception:
         await update.message.reply_text(msg['unknown_error'])
@@ -229,6 +235,11 @@ def main() -> None:
     # Render uchun muhit o'zgaruvchilarini olish
     PORT = int(os.environ.get('PORT', 8080))
     WEBHOOK_URL = os.environ.get('WEBHOOK_URL')
+
+    # BOT_TOKEN topilmagan bo'lsa, xato berish
+    if not BOT_TOKEN:
+        print("!!! BOT_TOKEN environment variables'da topilmadi. Iltimos, Render'da tekshiring.")
+        return
 
     application = Application.builder().token(BOT_TOKEN).build()
 
