@@ -253,6 +253,5 @@ def main() -> None:
         application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
-    # Eng oxirgi qismni faqat 'main()' funksiyasini chaqirishga o'zgartirdik.
-    # Bu 'app.run' xatosini yo'qotadi.
+    # Faqat asosiy ishga tushirish funksiyasini chaqirish
     main()
