@@ -252,5 +252,11 @@ def main() -> None:
         print("Lokal Polling rejimida ishga tushirildi...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
 
+
+
 if __name__ == "__main__":
-    main()
+    # Render'dan PORT qiymatini olish
+    port = int(os.environ.get('PORT', 5000)) 
+
+    # Flask ilovasini olingan PORTda ishga tushirish
+    app.run(host='0.0.0.0', port=port)
