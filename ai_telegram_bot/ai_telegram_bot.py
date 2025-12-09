@@ -9,9 +9,9 @@ from google.genai.errors import APIError
 # ========================================================================
 
 # BOT_TOKEN va GEMINI_API_KEY Render muhitida Environment Variables orqali olinadi.
-# Hozircha bu yerda sinov uchun qoldiramiz, lekin keyin serverda alohida sozlanadi.
-BOT_TOKEN = "8331826386:AAFo4TqHrxk3nkJ66BNF5wGLenGlM4Qvthc" 
-GEMINI_API_KEY = "AIzaSyDy4W2dLAs2LoErO6i28SefKmIe9U2Rz9I" 
+# Lokal sinov uchun standart qiymatlar ishlatiladi.
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8331826386:AAFo4TqHrxk3nkJ66BNF5wGLenGlM4Qvthc") 
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDy4W2dLAs2LoErO6i28SefKmIe9U2Rz9I") 
 CHANNEL_ID = "-1002494664955"  # Topilgan Kanal ID
 
 # --- Gemini AI Modelini Sozlash ---
@@ -220,7 +220,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 # ========================================================================
-# 5. Asosiy Funksiya (Botni WebHook rejimida ishga tushirish)
+# 5. Asosiy Funksiya (Botni WebHook rejimida ishga tushirish uchun TUZATILGAN)
 # ========================================================================
 
 def main() -> None:
@@ -239,7 +239,7 @@ def main() -> None:
 
     if WEBHOOK_URL:
         # Serverda Webhook rejimida ishga tushirish
-        print(f"Webhook rejimida ishga tushirildi: {WEBHOOK_URL}:{PORT}")
+        print(f"Webhook rejimida ishga tushirildi: {WEBHOOK_URL} (Port: {PORT})")
         
         application.run_webhook(
             listen="0.0.0.0",
@@ -252,11 +252,7 @@ def main() -> None:
         print("Lokal Polling rejimida ishga tushirildi...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
 
-
-
 if __name__ == "__main__":
-    # Render'dan PORT qiymatini olish
-    port = int(os.environ.get('PORT', 5000)) 
-
-    # Flask ilovasini olingan PORTda ishga tushirish
-    app.run(host='0.0.0.0', port=port)
+    # Eng oxirgi qismni faqat 'main()' funksiyasini chaqirishga o'zgartirdik.
+    # Bu 'app.run' xatosini yo'qotadi.
+    main()
