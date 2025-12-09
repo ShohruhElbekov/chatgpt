@@ -1,2 +1,3 @@
-python-telegram-bot
-google-genai
+python-telegram-bot[webhooks]
+# Yoki, agar versiyani aniq ko'rsatmoqchi bo'lsangiz:
+# python-telegram-bot[webhooks]==20.x.x (sizning versiyangiz)
