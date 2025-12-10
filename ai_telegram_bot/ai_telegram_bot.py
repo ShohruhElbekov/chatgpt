@@ -12,7 +12,7 @@ from google.genai.errors import APIError
 # !!! STANDART QIYMATLAR OCHIRILDI !!!
 BOT_TOKEN = os.environ.get("BOT_TOKEN") 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") 
-CHANNEL_ID = "-1002494664955"  # Topilgan Kanal ID
+CHANNEL_ID = None  # Topilgan Kanal ID
 
 # --- Gemini AI Modelini Sozlash ---
 client = None
